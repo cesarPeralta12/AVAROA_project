@@ -39,7 +39,7 @@ class WhatsAppService
             'backend_type' => 'moto',
             'services' => [
                 'mototaxi' => ['label' => '🛵 Mototaxi', 'requires_pod' => false, 'description' => 'Transporte de personas'],
-                'compras'  => ['label' => '🛍️ Compras',  'requires_pod' => true,  'description' => 'Compras y mandados'],
+                'compras'  => ['label' => '🛍️ Compras y Mandados', 'requires_pod' => true, 'description' => 'Compras y mandados', 'keywords' => ['compras', 'mandados', 'mandado']],
             ],
             'keywords' => ['1', '1️⃣', 'moto', 'motorcycle', 'motocicleta', 'moto taxi'],
         ],
@@ -370,10 +370,15 @@ class WhatsAppService
 
         if (!$selectedService) {
             foreach ($vehicleOption['services'] as $serviceKey => $serviceData) {
-                if (str_contains($lowerMessage, strtolower($serviceKey)) ||
-                    str_contains($lowerMessage, strtolower($serviceData['label']))) {
-                    $selectedService = $serviceKey;
-                    break;
+                $keywords = array_merge(
+                    [$serviceKey, $serviceData['label']],
+                    $serviceData['keywords'] ?? []
+                );
+                foreach ($keywords as $kw) {
+                    if (str_contains($lowerMessage, strtolower($kw))) {
+                        $selectedService = $serviceKey;
+                        break 2;
+                    }
                 }
             }
         }
@@ -460,13 +465,16 @@ class WhatsAppService
     protected function mapServiceTypeForDatabase(string $serviceKey): string
     {
         $map = [
-            'mototaxi' => 'Taxi',
-            'taxi' => 'Taxi',
-            'flash' => 'Delivery',
-            'moto_flash' => 'Delivery',
-            'delivery' => 'Delivery',
-            'cargo' => 'Cargo',
-            'small_cargo' => 'Cargo'
+            'mototaxi'      => 'Taxi',
+            'taxi'          => 'Taxi',
+            'flash'         => 'Delivery',
+            'moto_flash'    => 'Delivery',
+            'delivery'      => 'Delivery',
+            'compras'       => 'Delivery',
+            'cargo'         => 'Cargo',
+            'carga'         => 'Cargo',
+            'small_cargo'   => 'Cargo',
+            'carga_pequena' => 'Cargo',
         ];
 
         return $map[$serviceKey] ?? ucfirst($serviceKey);

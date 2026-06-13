@@ -854,7 +854,6 @@ class WhatsAppService
 
         $priceFormatted = $trip->price ? 'Bs ' . number_format($trip->price, 2) : 'Bs 0';
         $driverName  = $driver?->user?->name ?? $voc['role_cap'];
-        $driverPhone = $driver?->user?->whatsapp_number ?? 'N/A';
         $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
 
         $serviceLabel = 'Servicio';
@@ -872,7 +871,6 @@ class WhatsAppService
         return
             "✅ *{$voc['assigned_title']}*\n\n" .
             "👤 *{$voc['role_cap']}:* {$driverName}\n" .
-            "📱 *Teléfono:* {$driverPhone}\n" .
             "🛎️ *Servicio:* {$serviceLabel}\n\n" .
             "{$vehicleDisplay}\n\n" .
             "💰 *Precio:* {$priceFormatted}\n\n" .

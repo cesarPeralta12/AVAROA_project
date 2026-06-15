@@ -230,19 +230,26 @@ class Admin extends Controller
         $slaPercentage = $completedCount > 0 ? round(($onTimeDeliveries / $completedCount) * 100, 1) : 0;
 
         // Datos para gráficos - Tendencia de 7 días
-        $ordersTrend = [];
-        $revenueTrend = [];
-        $labels = [];
+        $ordersTrend    = [];
+        $revenueTrend   = [];
+        $commissionTrend = [];
+        $labels         = [];
 
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
             $labels[] = $date->format('D');
 
             $ordersTrend[] = Trip::whereDate('created_at', $date)->count();
-            $revenueTrend[] = Trip::whereDate('completed_at', $date)
+            $revenueTrend[] = (float) (Trip::whereDate('completed_at', $date)
                 ->where('status', 'completed')
-                ->sum('price') ?? 0;
+                ->sum('price') ?? 0);
+            $commissionTrend[] = (float) (WalletTransaction::whereDate('created_at', $date)
+                ->where('type', 'commission_debit')
+                ->sum('amount') ?? 0);
         }
+
+        $totalCommission7d  = array_sum($commissionTrend);
+        $totalCommissionAll = (float) WalletTransaction::where('type', 'commission_debit')->sum('amount');
 
         // Datos para gráfico de estado de entregas
         $deliveryStatus = [
@@ -305,6 +312,9 @@ class Admin extends Controller
             'labels',
             'ordersTrend',
             'revenueTrend',
+            'commissionTrend',
+            'totalCommission7d',
+            'totalCommissionAll',
             'deliveryStatus',
             'recentTrips',
             'topDrivers',
@@ -324,6 +334,7 @@ class Admin extends Controller
             $revenueTrend = [];
             $labels = [];
 
+            $commissionTrend = [];
             for ($i = $period - 1; $i >= 0; $i--) {
                 $date = Carbon::now()->subDays($i);
                 $labels[] = $period <= 7 ? $date->format('D') : $date->format('d/m');
@@ -331,6 +342,9 @@ class Admin extends Controller
                 $revenueTrend[] = (float) (Trip::whereDate('completed_at', $date)
                     ->where('status', 'completed')
                     ->sum('price') ?? 0);
+                $commissionTrend[] = (float) (WalletTransaction::whereDate('created_at', $date)
+                    ->where('type', 'commission_debit')
+                    ->sum('amount') ?? 0);
             }
 
             return response()->json([
@@ -338,6 +352,7 @@ class Admin extends Controller
                 'labels' => $labels,
                 'ordersTrend' => $ordersTrend,
                 'revenueTrend' => $revenueTrend,
+                'commissionTrend' => $commissionTrend,
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

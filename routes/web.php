@@ -769,6 +769,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
 Route::get('/admin/login', [Admin::class, 'admin'])->name('admin')->middleware('AdminAlreadyLoggedIn');
 Route::get('/', [Admin::class, 'admin'])->name('admin')->middleware('AdminAlreadyLoggedIn');
 Route::post('/admin/log', [Admin::class, 'login'])->name('login');
+Route::get('/admin/log', fn() => redirect('/admin/login'));
 Route::get('/admin/forget_password', [Admin::class, 'forget_password'])->name('forget_password');
 Route::post('/admin/unlocked', [Admin::class, 'unlocked'])->name('unlocked');
 Route::get('/admin/signout', [Admin::class, 'logout'])->name('logout');

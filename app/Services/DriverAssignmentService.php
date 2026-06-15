@@ -11,6 +11,7 @@ use App\Models\Driver;
 use App\Models\DriverRequest;
 use App\Models\ConversationSession;
 use App\Models\Vehicle;
+use App\Jobs\SendWhatsAppMessage;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -162,7 +163,7 @@ class DriverAssignmentService
                 "🏁 *Completar:* COMPLETAR, TERMINAR, ENTREGADO, LISTO";
         }
 
-        $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
+        SendWhatsAppMessage::dispatch($driver->user->whatsapp_number, $message);
     }
 
     /**
@@ -281,7 +282,7 @@ class DriverAssignmentService
                 "Escribe *REINICIAR* para intentar con otro tipo de vehículo.";
 
             if ($trip->customer && $trip->customer->whatsapp_number) {
-                $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+                SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
             }
 
             ConversationSession::where('trip_id', $trip->id)
@@ -360,7 +361,7 @@ class DriverAssignmentService
             "Escribe *REINICIAR* para intentar con otro tipo de vehículo.";
 
         if ($trip->customer && $trip->customer->whatsapp_number) {
-            $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+            SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
         }
 
         ConversationSession::where('trip_id', $tripId)
@@ -424,7 +425,7 @@ class DriverAssignmentService
             if (!$sent) {
                 Log::warning('Template failed, trying regular message', ['driver_id' => $driver->id]);
                 $message = $this->buildDriverMessage($trip, $customer, $vehicleInfo, $requiresPod);
-                $sent = $this->metaWhatsApp->sendMessage($phone, $message);
+                $sent = SendWhatsAppMessage::dispatch($phone, $message);
             }
 
             if (!$sent) {
@@ -486,7 +487,7 @@ class DriverAssignmentService
                     'user_id' => $driver->user_id
                 ]);
 
-                $this->metaWhatsApp->sendMessage(
+                SendWhatsAppMessage::dispatch(
                     $driver->user->whatsapp_number,
                     "❌ No se encontraron solicitudes pendientes activas.\n\n" .
                         "Es posible que la entrega ya fue asignada a otro mensajero o expiró (tienes 5 minutos para aceptar)."
@@ -505,7 +506,7 @@ class DriverAssignmentService
             if ($trip->status !== 'pending') {
                 $request->update(['status' => 'rejected']);
 
-                $this->metaWhatsApp->sendMessage(
+                SendWhatsAppMessage::dispatch(
                     $driver->user->whatsapp_number,
                     "❌ Esta entrega ya fue asignada a otro mensajero o fue cancelada."
                 );
@@ -526,7 +527,7 @@ class DriverAssignmentService
 
                 $request->update(['status' => 'rejected']);
 
-                $this->metaWhatsApp->sendMessage(
+                SendWhatsAppMessage::dispatch(
                     $driver->user->whatsapp_number,
                     "❌ No puedes aceptar esta entrega.\n\n" .
                         "No tienes un vehículo tipo *" . ($this->vehicleLabels[$trip->vehicle_type] ?? $trip->vehicle_type) . "* activo."
@@ -608,7 +609,7 @@ class DriverAssignmentService
                     "• FINISH - Finalizar viaje";
             }
 
-            $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
+            SendWhatsAppMessage::dispatch($driver->user->whatsapp_number, $message);
 
             Log::info('Courier assigned successfully', [
                 'trip_id' => $trip->id,
@@ -632,7 +633,7 @@ class DriverAssignmentService
             ->first();
 
         if (!$trip) {
-            $this->metaWhatsApp->sendMessage(
+            SendWhatsAppMessage::dispatch(
                 $driver->user->whatsapp_number,
                 "❌ No se encontró una entrega asignada activa.\n\n" .
                     "Primero debes aceptar una entrega."
@@ -642,7 +643,7 @@ class DriverAssignmentService
 
         $this->updateTripStatus($trip->id, 'en_route');
 
-        $this->metaWhatsApp->sendMessage(
+        SendWhatsAppMessage::dispatch(
             $driver->user->whatsapp_number,
             "✅ Estado actualizado: En camino a la recogida 🚚\n\n" .
                 "Responde LLEGUÉ cuando llegues a la ubicación de recogida."
@@ -670,7 +671,7 @@ class DriverAssignmentService
             ]);
         }
 
-        $this->metaWhatsApp->sendMessage(
+        SendWhatsAppMessage::dispatch(
             $driver->user->whatsapp_number,
             "❌ Solicitud rechazada.\n\n" .
                 "Esperando la próxima oportunidad..."
@@ -687,7 +688,7 @@ class DriverAssignmentService
             ->first();
 
         if (!$trip) {
-            $this->metaWhatsApp->sendMessage(
+            SendWhatsAppMessage::dispatch(
                 $driver->user->whatsapp_number,
                 "❌ No se encontró una entrega activa."
             );
@@ -708,7 +709,7 @@ class DriverAssignmentService
                 "Responde RECOGIDO cuando el pasajero suba.";
         }
 
-        $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
+        SendWhatsAppMessage::dispatch($driver->user->whatsapp_number, $message);
 
         return ['status' => 'success', 'message' => 'Arrival confirmed'];
     }
@@ -721,7 +722,7 @@ class DriverAssignmentService
             ->first();
 
         if (!$trip) {
-            $this->metaWhatsApp->sendMessage(
+            SendWhatsAppMessage::dispatch(
                 $driver->user->whatsapp_number,
                 "❌ No se encontró una entrega activa para iniciar."
             );
@@ -742,7 +743,7 @@ class DriverAssignmentService
                 "Responde FINISH cuando llegues al destino.";
         }
 
-        $this->metaWhatsApp->sendMessage($driver->user->whatsapp_number, $message);
+        SendWhatsAppMessage::dispatch($driver->user->whatsapp_number, $message);
 
         return ['status' => 'success', 'message' => 'Delivery started'];
     }
@@ -759,7 +760,7 @@ class DriverAssignmentService
             ->first();
 
         if (!$trip) {
-            $this->metaWhatsApp->sendMessage(
+            SendWhatsAppMessage::dispatch(
                 $driver->user->whatsapp_number,
                 "❌ No se encontró una entrega activa para completar."
             );
@@ -768,7 +769,7 @@ class DriverAssignmentService
 
         // Verify this is a delivery/cargo service that requires POD
         if (!$this->serviceRequiresPod($trip)) {
-            $this->metaWhatsApp->sendMessage(
+            SendWhatsAppMessage::dispatch(
                 $driver->user->whatsapp_number,
                 "⚠️ Este servicio usa finalización simple.\n\n" .
                     "Responde FINISH para finalizar el viaje."
@@ -783,7 +784,7 @@ class DriverAssignmentService
         // CRITICAL FIX: Free up driver for new requests
         $driver->update(['status' => 'available']);
 
-        $this->metaWhatsApp->sendMessage(
+        SendWhatsAppMessage::dispatch(
             $driver->user->whatsapp_number,
             "✅ ¡Entrega completada!\n" .
                 "¡Buen trabajo!\n\n" .
@@ -806,7 +807,7 @@ class DriverAssignmentService
             ->first();
 
         if (!$trip) {
-            $this->metaWhatsApp->sendMessage(
+            SendWhatsAppMessage::dispatch(
                 $driver->user->whatsapp_number,
                 "❌ No se encontró un viaje activo para finalizar."
             );
@@ -815,7 +816,7 @@ class DriverAssignmentService
 
         // Verify this is a taxi/passenger service
         if ($this->serviceRequiresPod($trip)) {
-            $this->metaWhatsApp->sendMessage(
+            SendWhatsAppMessage::dispatch(
                 $driver->user->whatsapp_number,
                 "⚠️ Este servicio requiere confirmación de entrega.\n\n" .
                     "Responde ENTREGADO y usa la app para subir foto, firma y nombre del receptor."
@@ -830,7 +831,7 @@ class DriverAssignmentService
         // CRITICAL FIX: Free up driver for new requests
         $driver->update(['status' => 'available']);
 
-        $this->metaWhatsApp->sendMessage(
+        SendWhatsAppMessage::dispatch(
             $driver->user->whatsapp_number,
             "✅ ¡Viaje finalizado!\n" .
                 "¡Buen trabajo!\n\n" .
@@ -878,7 +879,7 @@ class DriverAssignmentService
             $closingLine;
 
         if ($trip->customer && $trip->customer->whatsapp_number) {
-            $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+            SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
         }
     }
 
@@ -1023,7 +1024,7 @@ class DriverAssignmentService
         };
 
         if ($customerMessage && $trip->customer && $trip->customer->whatsapp_number) {
-            $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $customerMessage);
+            SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $customerMessage);
         }
 
         // CRITICAL FIX: Proper session state mapping including IN_PROGRESS
@@ -1070,6 +1071,6 @@ class DriverAssignmentService
             "📅 *Fecha:* {$completedAt}\n\n" .
             "Gracias por usar nuestro servicio! 🚚";
 
-        $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+        SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
     }
 }

@@ -65,30 +65,6 @@
 
                 <!--<li class="maximize"><a href="#!" onclick="javascript:toggleFullScreen()"><i-->
                 <!--            data-feather="maximize-2"></i></a></li>-->
-                <li class="language-nav">
-                    <div class="translate_wrapper">
-                        <div class="current_lang">
-                            <div class="lang">
-                                <i
-                                    class="flag-icon flag-icon-{{ selectedLanguage(session()->get('local'))->iso_code }}"></i>
-                                {{-- <span class="lang-txt">
-                                    {{ selectedLanguage(session()->get('local'))->language }}
-                                </span> --}}
-                            </div>
-                        </div>
-                        <div class="more_lang">
-                            @foreach (appLanguages() as $app_lang)
-                                <div class="lang {{ session()->get('local') === $app_lang->iso_code ? 'selected' : '' }}"
-                                    data-value="{{ $app_lang->iso_code }}">
-                                    <a href="{{ url('admin/local/' . $app_lang->iso_code) }}" class="dropdown-item">
-                                        <i class="flag-icon flag-icon-{{ $app_lang->iso_code }}"></i>
-                                        <span class="lang-txt">{{ $app_lang->language }}</span>
-                                    </a>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </li>
 
                 <li class="profile-nav onhover-dropdown">
                     <div class="account-user"><i data-feather="user"></i></div>

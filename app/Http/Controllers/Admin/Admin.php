@@ -312,6 +312,38 @@ class Admin extends Controller
         ));
     }
 
+    public function chartData(Request $request)
+    {
+        try {
+            $period = (int) $request->get('period', 7);
+            if (!in_array($period, [7, 30, 90])) {
+                $period = 7;
+            }
+
+            $ordersTrend = [];
+            $revenueTrend = [];
+            $labels = [];
+
+            for ($i = $period - 1; $i >= 0; $i--) {
+                $date = Carbon::now()->subDays($i);
+                $labels[] = $period <= 7 ? $date->format('D') : $date->format('d/m');
+                $ordersTrend[] = Trip::whereDate('created_at', $date)->count();
+                $revenueTrend[] = (float) (Trip::whereDate('completed_at', $date)
+                    ->where('status', 'completed')
+                    ->sum('price') ?? 0);
+            }
+
+            return response()->json([
+                'success' => true,
+                'labels' => $labels,
+                'ordersTrend' => $ordersTrend,
+                'revenueTrend' => $revenueTrend,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function getRealtimeStats()
     {
         try {

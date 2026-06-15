@@ -261,10 +261,10 @@
             <div class="chart-container">
                 <div class="chart-header">
                     <h5 class="chart-title"><i class="fas fa-chart-area text-primary me-2"></i>Tendencia de Pedidos (Últimos 7 días)</h5>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-light active">7D</button>
-                        <button class="btn btn-outline-light">30D</button>
-                        <button class="btn btn-outline-light">90D</button>
+                    <div class="btn-group btn-group-sm" id="period-btns">
+                        <button class="btn btn-outline-light active" data-period="7">7D</button>
+                        <button class="btn btn-outline-light" data-period="30">30D</button>
+                        <button class="btn btn-outline-light" data-period="90">90D</button>
                     </div>
                 </div>
                 <div class="chart-wrapper">
@@ -576,8 +576,9 @@ const commonOptions = {
 
 // --- Orders Trend Chart (Line) ---
 const ordersCtx = document.getElementById('ordersChart');
+let ordersChartInstance = null;
 if (ordersCtx) {
-    new Chart(ordersCtx, {
+    ordersChartInstance = new Chart(ordersCtx, {
         type: 'line',
         data: {
             labels: {!! json_encode($labels) !!},
@@ -763,6 +764,29 @@ function refreshData() {
 
 // Auto refresh every 60 seconds (reduced from 30s to avoid hammering a broken endpoint)
 setInterval(refreshData, 60000);
+
+// ==========================================
+// Chart period switching (7D / 30D / 90D)
+// ==========================================
+document.querySelectorAll('#period-btns button').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const period = this.dataset.period;
+        document.querySelectorAll('#period-btns button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        fetch(`{{ route('dashboard.chart-data') }}?period=${period}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || !ordersChartInstance) return;
+            ordersChartInstance.data.labels = data.labels;
+            ordersChartInstance.data.datasets[0].data = data.ordersTrend;
+            ordersChartInstance.update();
+        })
+        .catch(err => console.warn('Error al cargar datos del gráfico:', err));
+    });
+});
 
 // ==========================================
 // Topup Actions

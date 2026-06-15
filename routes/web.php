@@ -743,6 +743,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
 
         Route::get('dashboard', [Admin::class, 'dashboard'])->name('dashboard');
         Route::get('dashboard/stats', [Admin::class, 'getRealtimeStats'])->name('dashboard.stats');
+        Route::get('dashboard/chart-data', [Admin::class, 'chartData'])->name('dashboard.chart-data');
         Route::get('/edit_profile', [Admin::class, 'edit_profile'])->name('edit_profile')->middleware('AdminIsLoggedIn');
         Route::post('update_profile', [Admin::class, 'update_profile'])->name('update_profile')->middleware('AdminIsLoggedIn');
 

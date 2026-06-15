@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProofOfDeliveryController extends Controller
 {
@@ -124,10 +125,13 @@ class ProofOfDeliveryController extends Controller
         $user_session = $this->checkSession();
 
         $proofOfDelivery = ProofOfDelivery::with(['trip.driver.user', 'trip.customer'])->findOrFail($id);
+        $trip = $proofOfDelivery->trip;
 
-        // You can implement PDF generation using barryvdh/laravel-dompdf or similar
-        // For now, we'll redirect to a printable view
-        return view('admin.proof-of-delivery.pdf', compact('proofOfDelivery', 'user_session'));
+        $pdf = Pdf::loadView('admin.proof-of-delivery.pdf', compact('proofOfDelivery', 'trip', 'user_session'))
+            ->setPaper('a4', 'portrait');
+
+        $filename = 'POD-' . str_pad($proofOfDelivery->id, 6, '0', STR_PAD_LEFT) . '.pdf';
+        return $pdf->download($filename);
     }
 
     /**

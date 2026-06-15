@@ -44,14 +44,14 @@ class WhatsAppService
             'keywords' => ['1', '1️⃣', 'moto', 'motorcycle', 'motocicleta', 'moto taxi'],
         ],
         'car' => [
-            'label' => '🚗 Auto',
+            'label' => '🚗 Móvil',
             'description' => 'Transporte de personas, paquetes y carga',
             'backend_type' => 'auto',
             'services' => [
                 'taxi'  => ['label' => '🚕 Taxi',  'requires_pod' => false, 'description' => 'Transporte de personas'],
                 'carga' => ['label' => '📦 Carga', 'requires_pod' => true,  'description' => 'Paquetes, carga y mandados'],
             ],
-            'keywords' => ['2', '2️⃣', 'auto', 'automovil', 'automóvil', 'carro', 'sedan', 'sedán'],
+            'keywords' => ['2', '2️⃣', 'movil', 'móvil', 'auto', 'automovil', 'automóvil', 'carro', 'sedan', 'sedán'],
         ],
         'minivan' => [
             'label' => '🚐 Minivan',
@@ -64,14 +64,14 @@ class WhatsAppService
             'keywords' => ['3', '3️⃣', 'minivan', 'van', 'vagoneta', 'furgon', 'furgón', 'suv'],
         ],
         'truck' => [
-            'label' => '🚚 Camión',
+            'label' => '🚚 Camioneta',
             'description' => 'Solo carga grande y mudanzas (no pasajeros)',
             'backend_type' => 'camion',
             'services' => [
                 'carga' => ['label' => '📦 Carga', 'requires_pod' => true, 'description' => 'Carga grande y mudanzas'],
             ],
             'can_transport_people' => false,
-            'keywords' => ['4', '4️⃣', 'camion', 'camión', 'truck', 'mudanza', 'flete'],
+            'keywords' => ['4', '4️⃣', 'camioneta', 'camion', 'camión', 'truck', 'mudanza', 'flete'],
         ],
         'torito' => [
             'label' => '🚜 Torito',
@@ -300,9 +300,9 @@ class WhatsAppService
             "¡Hola! Bienvenido a *AVAROA* 🚚\n\n" .
             "¿Qué tipo de vehículo necesitás?\n\n" .
             "1️⃣ *Motocicleta* — Mototaxi y Compras\n" .
-            "2️⃣ *Auto* — Taxi y Carga\n" .
+            "2️⃣ *Móvil* — Taxi y Carga\n" .
             "3️⃣ *Minivan* — Taxi y Carga\n" .
-            "4️⃣ *Camión* — Solo carga (NO pasajeros)\n" .
+            "4️⃣ *Camioneta* — Solo carga (NO pasajeros)\n" .
             "5️⃣ *Torito* — Taxi y carga pequeña\n" .
             "6️⃣ *Bicicleta* — Solo delivery pequeño\n\n" .
             "Responde con el *número* 😊";
@@ -1117,8 +1117,8 @@ class WhatsAppService
             ],
             'vehicle' => [
                 "Esa opción no existe 😅\n\nElegí del 1 al 6\nO escribí el nombre",
-                "No te entendí bien 🤔\n\n¿Moto, Auto, Minivan, Camión, Torito o Bicicleta?\nTambién podés usar 1, 2, 3, 4, 5 o 6",
-                "Elegí una de estas 6 👇\n\n1️⃣ Moto  2️⃣ Auto  3️⃣ Minivan\n4️⃣ Camión  5️⃣ Torito  6️⃣ Bicicleta",
+                "No te entendí bien 🤔\n\n¿Moto, Móvil, Minivan, Camioneta, Torito o Bicicleta?\nTambién podés usar 1, 2, 3, 4, 5 o 6",
+                "Elegí una de estas 6 👇\n\n1️⃣ Moto  2️⃣ Móvil  3️⃣ Minivan\n4️⃣ Camioneta  5️⃣ Torito  6️⃣ Bicicleta",
             ]
         ];
 

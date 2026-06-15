@@ -299,10 +299,10 @@
     <!-- Second Charts Row -->
     <div class="row g-3 mb-4">
         <!-- Revenue Trend -->
-        <div class="col-xl-4">
+        <div class="col-xl-6">
             <div class="chart-container">
                 <div class="chart-header">
-                    <h5 class="chart-title"><i class="fas fa-money-bill-trend-up text-success me-2"></i>Ingresos del viaje (7d)</h5>
+                    <h5 class="chart-title"><i class="fas fa-money-bill-trend-up text-success me-2"></i>Ingresos (Últimos 7 días)</h5>
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="revenueChart"></canvas>
@@ -310,30 +310,8 @@
             </div>
         </div>
 
-        <!-- Commission Trend -->
-        <div class="col-xl-4">
-            <div class="chart-container">
-                <div class="chart-header">
-                    <h5 class="chart-title"><i class="fas fa-percent text-warning me-2"></i>Ganancias de la Plataforma (7d)</h5>
-                </div>
-                <div style="display:flex;gap:16px;padding:0 4px 12px;">
-                    <div style="flex:1;background:rgba(245,158,11,0.12);border-radius:10px;padding:10px 14px;">
-                        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">Últimos 7 días</div>
-                        <div style="font-size:1.25rem;font-weight:700;color:#f59e0b;">Bs {{ number_format($totalCommission7d, 2) }}</div>
-                    </div>
-                    <div style="flex:1;background:rgba(245,158,11,0.08);border-radius:10px;padding:10px 14px;">
-                        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">Total acumulado</div>
-                        <div style="font-size:1.25rem;font-weight:700;color:#f59e0b;">Bs {{ number_format($totalCommissionAll, 2) }}</div>
-                    </div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="commissionChart"></canvas>
-                </div>
-            </div>
-        </div>
-
         <!-- Driver Performance -->
-        <div class="col-xl-4">
+        <div class="col-xl-6">
             <div class="chart-container">
                 <div class="chart-header">
                     <h5 class="chart-title"><i class="fas fa-star text-warning me-2"></i>Top Conductores</h5>
@@ -631,47 +609,6 @@ if (ordersCtx) {
     });
 }
 
-// --- Commission Chart (Bar) ---
-const commissionCtx = document.getElementById('commissionChart');
-let commissionChartInstance = null;
-if (commissionCtx) {
-    commissionChartInstance = new Chart(commissionCtx, {
-        type: 'bar',
-        data: {
-            labels: {!! json_encode($labels) !!},
-            datasets: [{
-                label: 'Comisiones (Bs)',
-                data: {!! json_encode($commissionTrend) !!},
-                backgroundColor: 'rgba(245, 158, 11, 0.75)',
-                hoverBackgroundColor: '#f59e0b',
-                borderColor: '#f59e0b',
-                borderWidth: 0,
-                borderRadius: 6,
-                borderSkipped: false,
-                barPercentage: 0.6,
-                categoryPercentage: 0.7
-            }]
-        },
-        options: {
-            ...commonOptions,
-            plugins: {
-                ...commonOptions.plugins,
-                legend: { display: false }
-            },
-            scales: {
-                ...commonOptions.scales,
-                y: {
-                    ...commonOptions.scales.y,
-                    ticks: {
-                        ...commonOptions.scales.y.ticks,
-                        callback: function(value) { return 'Bs' + value; }
-                    }
-                }
-            }
-        }
-    });
-}
-
 // --- Revenue Chart (Bar) ---
 const revenueCtx = document.getElementById('revenueChart');
 if (revenueCtx) {
@@ -842,17 +779,10 @@ document.querySelectorAll('#period-btns button').forEach(btn => {
         })
         .then(r => r.json())
         .then(data => {
-            if (!data.success) return;
-            if (ordersChartInstance) {
-                ordersChartInstance.data.labels = data.labels;
-                ordersChartInstance.data.datasets[0].data = data.ordersTrend;
-                ordersChartInstance.update();
-            }
-            if (commissionChartInstance && data.commissionTrend) {
-                commissionChartInstance.data.labels = data.labels;
-                commissionChartInstance.data.datasets[0].data = data.commissionTrend;
-                commissionChartInstance.update();
-            }
+            if (!data.success || !ordersChartInstance) return;
+            ordersChartInstance.data.labels = data.labels;
+            ordersChartInstance.data.datasets[0].data = data.ordersTrend;
+            ordersChartInstance.update();
         })
         .catch(err => console.warn('Error al cargar datos del gráfico:', err));
     });

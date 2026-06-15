@@ -127,11 +127,48 @@ class ProofOfDeliveryController extends Controller
         $proofOfDelivery = ProofOfDelivery::with(['trip.driver.user', 'trip.customer'])->findOrFail($id);
         $trip = $proofOfDelivery->trip;
 
-        $pdf = Pdf::loadView('admin.proof-of-delivery.pdf', compact('proofOfDelivery', 'trip', 'user_session'))
-            ->setPaper('a4', 'portrait');
+        // Convert photo URLs/paths to absolute local paths for dompdf
+        $pdfPhotos = collect($proofOfDelivery->getAllPhotosAttribute())
+            ->map(fn($p) => $this->toAbsolutePath($p))
+            ->filter()
+            ->values()
+            ->toArray();
+
+        $pdfSignature = $proofOfDelivery->signature
+            ? $this->toAbsolutePath($proofOfDelivery->signature)
+            : null;
+
+        $pdf = Pdf::loadView('admin.proof-of-delivery.pdf', compact(
+            'proofOfDelivery', 'trip', 'user_session', 'pdfPhotos', 'pdfSignature'
+        ))->setPaper('a4', 'portrait');
 
         $filename = 'POD-' . str_pad($proofOfDelivery->id, 6, '0', STR_PAD_LEFT) . '.pdf';
         return $pdf->download($filename);
+    }
+
+    /**
+     * Convert a stored photo path (relative or full URL) to an absolute filesystem path.
+     */
+    private function toAbsolutePath(?string $path): ?string
+    {
+        if (!$path) return null;
+
+        // Already an absolute filesystem path
+        if (str_starts_with($path, '/') && !str_starts_with($path, '//') && file_exists($path)) {
+            return $path;
+        }
+
+        // Full URL — strip the origin to get the relative path
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $parsed   = parse_url($path);
+            $relative = ltrim($parsed['path'] ?? '', '/');
+            $abs      = public_path($relative);
+            return file_exists($abs) ? $abs : null;
+        }
+
+        // Relative path (e.g. "uploads/proof/xxx.jpg" or "/uploads/proof/xxx.jpg")
+        $abs = public_path(ltrim($path, '/'));
+        return file_exists($abs) ? $abs : null;
     }
 
     /**

@@ -175,7 +175,7 @@
                 <div class="stats-card">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted mb-1">Total Créditos</p>
+                            <p class="mb-1" style="color:#6b7280;font-size:.85rem;">Total Créditos</p>
                             <h4 class="transaction-credit mb-0">+{{ number_format($stats['total_credits'], 2) }} Bs</h4>
                         </div>
                         <div class="stats-icon" style="background: #d1fae5;">
@@ -188,7 +188,7 @@
                 <div class="stats-card">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted mb-1">Total Débitos</p>
+                            <p class="mb-1" style="color:#6b7280;font-size:.85rem;">Total Débitos</p>
                             <h4 class="transaction-debit mb-0">-{{ number_format($stats['total_debits'], 2) }} Bs</h4>
                         </div>
                         <div class="stats-icon" style="background: #fee2e2;">
@@ -201,28 +201,28 @@
                 <div class="stats-card">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted mb-1">Volumen de Hoy</p>
-                            <h4 class="mb-0 text-dark">{{ number_format($stats['today_volume'], 2) }} Bs</h4>
+                            <p class="mb-1" style="color:#6b7280;font-size:.85rem;">Volumen de Hoy</p>
+                            <h4 class="mb-0" style="color:#0f172a;font-size:1.5rem;">{{ number_format($stats['today_volume'], 2) }} Bs</h4>
                         </div>
                         <div class="stats-icon" style="background: #dbeafe;">
                             <i class="fas fa-calendar-day text-primary"></i>
                         </div>
                     </div>
-                    <small class="text-muted">{{ $stats['today_transactions'] }} transacciones hoy</small>
+                    <small style="color:#6b7280;">{{ $stats['today_transactions'] }} transacciones hoy</small>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="stats-card">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted mb-1">Volumen Mensual</p>
-                            <h4 class="mb-0 text-dark">{{ number_format($stats['month_volume'], 2) }} Bs</h4>
+                            <p class="mb-1" style="color:#6b7280;font-size:.85rem;">Volumen Mensual</p>
+                            <h4 class="mb-0" style="color:#0f172a;font-size:1.5rem;">{{ number_format($stats['month_volume'], 2) }} Bs</h4>
                         </div>
                         <div class="stats-icon" style="background: #fef3c7;">
                             <i class="fas fa-chart-bar text-warning"></i>
                         </div>
                     </div>
-                    <small class="text-muted">{{ $stats['total_transactions'] }} transacciones totales</small>
+                    <small style="color:#6b7280;">{{ $stats['total_transactions'] }} transacciones totales</small>
                 </div>
             </div>
         </div>

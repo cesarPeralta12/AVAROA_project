@@ -186,25 +186,24 @@
         @endif
     </div>
 
-    @php $photos = $proofOfDelivery->getAllPhotosAttribute(); @endphp
-    @if(count($photos) > 0)
+    @if(!empty($pdfPhotos))
     <div class="section">
         <div class="section-title">Delivery Photos</div>
         <div class="photos">
-            @foreach($photos as $photo)
+            @foreach($pdfPhotos as $photo)
             <div class="photo">
-                <img src="{{ public_path(str_replace('/storage/', 'storage/', $photo)) }}" alt="Delivery photo">
+                <img src="{{ $photo }}" alt="Delivery photo">
             </div>
             @endforeach
         </div>
     </div>
     @endif
 
-    @if($proofOfDelivery->signature)
+    @if(!empty($pdfSignature))
     <div class="section">
         <div class="section-title">Customer Signature</div>
         <div class="signature">
-            <img src="{{ public_path(str_replace('/storage/', 'storage/', $proofOfDelivery->signature)) }}" alt="Signature">
+            <img src="{{ $pdfSignature }}" alt="Signature">
             <p class="mt-2" style="font-size: 12px;">Digitally signed by {{ $proofOfDelivery->receiver_name }}</p>
         </div>
     </div>

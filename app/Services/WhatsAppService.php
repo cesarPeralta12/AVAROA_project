@@ -1227,14 +1227,15 @@ class WhatsAppService
             $this->logMessage($conversationId, $tripId, 'system', 0, $message);
         }
 
-        $sent = $this->metaWhatsApp->sendMessage($user->whatsapp_number, $message);
+        try {
+            $sent = $this->metaWhatsApp->sendMessage($user->whatsapp_number, $message);
+        } catch (\Exception $e) {
+            $sent = false;
+        }
 
         if (!$sent) {
-            $sent = $this->metaWhatsApp->sendTemplateMessage(
-                $user->whatsapp_number,
-                'delivery_notification_sp',
-                ['message' => $message]
-            );
+            // Queue retry instead of blocking with a second synchronous HTTP call
+            \App\Jobs\SendWhatsAppMessage::dispatch($user->whatsapp_number, $message);
         }
 
         return $sent;

@@ -51,8 +51,8 @@ class MetaWhatsAppService
                 'Authorization' => 'Bearer ' . $this->accessToken,
                 'Content-Type' => 'application/json',
             ])
-                ->connectTimeout(5)
-                ->timeout(12)
+                ->connectTimeout(3)
+                ->timeout(6)
                 ->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", $payload);
             $ms = round((hrtime(true) - $t0) / 1e6);
 
@@ -132,8 +132,8 @@ class MetaWhatsAppService
                 'Authorization' => 'Bearer ' . $this->accessToken,
                 'Content-Type' => 'application/json',
             ])
-                ->connectTimeout(5)
-                ->timeout(8)
+                ->connectTimeout(3)
+                ->timeout(6)
                 ->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", $payload);
             $ms = round((hrtime(true) - $t0) / 1e6);
 
@@ -238,14 +238,14 @@ class MetaWhatsAppService
 
     public function sendToUser(string $phoneNumber, string $message, ?string $fallbackTemplate = null, array $templateParams = []): bool
     {
-        $sent = $this->sendMessage($phoneNumber, $message);
+        try {
+            $sent = $this->sendMessage($phoneNumber, $message);
+        } catch (\Exception $e) {
+            $sent = false;
+        }
 
         if (!$sent && $fallbackTemplate) {
-            Log::info('Falling back to template message', [
-                'phone' => $phoneNumber,
-                'template' => $fallbackTemplate
-            ]);
-            $sent = $this->sendTemplateMessage($phoneNumber, $fallbackTemplate, $templateParams);
+            \App\Jobs\SendWhatsAppMessage::dispatch($phoneNumber, $message);
         }
 
         return $sent;

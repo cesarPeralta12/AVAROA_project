@@ -46,6 +46,7 @@ class MetaWhatsAppService
                 'text' => ['body' => $message]
             ];
 
+            $t0 = hrtime(true);
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->accessToken,
                 'Content-Type' => 'application/json',
@@ -53,14 +54,16 @@ class MetaWhatsAppService
                 ->connectTimeout(5)
                 ->timeout(12)
                 ->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", $payload);
+            $ms = round((hrtime(true) - $t0) / 1e6);
 
             if ($response->successful()) {
                 $data = $response->json();
 
                 if (isset($data['messages'][0]['id'])) {
-                    Log::info('Message sent successfully', [
+                    Log::info('WhatsApp API sendMessage', [
                         'phone' => $phoneNumber,
-                        'wamid' => $data['messages'][0]['id']
+                        'wamid' => $data['messages'][0]['id'],
+                        'ms' => $ms,
                     ]);
                     $this->cacheSentMessage($phoneNumber, $message);
                     return true;
@@ -70,7 +73,8 @@ class MetaWhatsAppService
             Log::error('Failed to send message', [
                 'phone' => $phoneNumber,
                 'response' => $response->body(),
-                'status' => $response->status()
+                'status' => $response->status(),
+                'ms' => $ms,
             ]);
             return false;
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
@@ -123,27 +127,24 @@ class MetaWhatsAppService
                 ]
             ];
 
-            Log::info('Sending template message', [
-                'phone' => $phoneNumber,
-                'template' => $templateName,
-                'params' => $parameters
-            ]);
-
+            $t0 = hrtime(true);
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->accessToken,
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(30)
                 ->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", $payload);
+            $ms = round((hrtime(true) - $t0) / 1e6);
 
             $responseBody = $response->body();
             $responseData = $response->json();
 
             if ($response->successful() && isset($responseData['messages'][0]['id'])) {
-                Log::info('Template sent successfully', [
+                Log::info('WhatsApp API sendTemplate', [
                     'phone' => $phoneNumber,
                     'template' => $templateName,
-                    'wamid' => $responseData['messages'][0]['id']
+                    'wamid' => $responseData['messages'][0]['id'],
+                    'ms' => $ms,
                 ]);
                 return true;
             }
@@ -152,7 +153,8 @@ class MetaWhatsAppService
                 'phone' => $phoneNumber,
                 'template' => $templateName,
                 'response' => $responseBody,
-                'status' => $response->status()
+                'status' => $response->status(),
+                'ms' => $ms,
             ]);
             return false;
         } catch (\Exception $e) {

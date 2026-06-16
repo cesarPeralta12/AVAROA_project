@@ -481,10 +481,10 @@ class WhatsAppService
             'moto_flash'    => 'Delivery',
             'delivery'      => 'Delivery',
             'compras'       => 'Delivery',
-            'cargo'         => 'Cargo',
-            'carga'         => 'Cargo',
-            'small_cargo'   => 'Cargo',
-            'carga_pequena' => 'Cargo',
+            'cargo'         => 'Delivery',
+            'carga'         => 'Delivery',
+            'small_cargo'   => 'Delivery',
+            'carga_pequena' => 'Delivery',
         ];
 
         return $map[$serviceKey] ?? ucfirst($serviceKey);

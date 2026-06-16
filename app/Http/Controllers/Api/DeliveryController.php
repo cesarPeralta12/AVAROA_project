@@ -400,6 +400,16 @@ class DeliveryController extends Controller
             return;
         }
 
+        // Deduplication: prevent double notification if APK and WhatsApp both fire
+        $cacheKey = "customer_status_notified_{$trip->id}_{$status}";
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            Log::info('Status notification already sent, skipping duplicate', [
+                'trip_id' => $trip->id, 'status' => $status
+            ]);
+            return;
+        }
+        \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
+
         $phone = $trip->customer->whatsapp_number;
         $orderId = $trip->id;
         $voc = $trip->messageVocabulary();

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // app/Events/DriverWentOffline.php
 
 namespace App\Events;
@@ -6,11 +6,11 @@ namespace App\Events;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class DriverWentOffline implements ShouldBroadcastNow
+class DriverWentOffline implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -38,3 +38,4 @@ class DriverWentOffline implements ShouldBroadcastNow
         return 'driver.offline';
     }
 }
+

@@ -1,18 +1,18 @@
-<?php
+﻿<?php
 
 namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Evento para el link público de rastreo.
- * Usa Canal PÚBLICO (no requiere auth) identificado por tracking_token.
+ * Evento para el link pÃºblico de rastreo.
+ * Usa Canal PÃšBLICO (no requiere auth) identificado por tracking_token.
  */
-class TripTrackingUpdated implements ShouldBroadcastNow
+class TripTrackingUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -28,7 +28,7 @@ class TripTrackingUpdated implements ShouldBroadcastNow
 
     public function broadcastOn(): Channel
     {
-        // Canal público — cualquier cliente con el token puede escuchar
+        // Canal pÃºblico â€” cualquier cliente con el token puede escuchar
         return new Channel('track.' . $this->token);
     }
 
@@ -50,3 +50,4 @@ class TripTrackingUpdated implements ShouldBroadcastNow
         ];
     }
 }
+

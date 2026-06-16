@@ -1041,7 +1041,10 @@ class DriverAssignmentService
             default => null,
         };
 
-        if ($customerMessage && $trip->customer && $trip->customer->whatsapp_number) {
+        $cacheKey = "customer_status_notified_{$trip->id}_{$status}";
+        if ($customerMessage && $trip->customer && $trip->customer->whatsapp_number &&
+            !\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
             try {
                 $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $customerMessage);
             } catch (\Exception $e) {

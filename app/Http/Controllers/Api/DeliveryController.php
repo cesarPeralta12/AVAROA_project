@@ -162,14 +162,14 @@ class DeliveryController extends Controller
                 Log::error('Notify customer failed: ' . $e->getMessage());
             }
 
+            // Queue rejected-driver notifications — no urgency, avoid serial HTTP calls
             foreach ($otherDriverIds as $loserId) {
-                try {
-                    $loserDriver = Driver::find($loserId);
-                    if ($loserDriver && $loserDriver->user) {
-                        $this->notifyDriverRejected($loserDriver, $acceptedTrip);
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Notify rejected failed: ' . $e->getMessage());
+                $loserDriver = Driver::find($loserId);
+                if ($loserDriver?->user?->whatsapp_number) {
+                    $voc = $acceptedTrip->messageVocabulary();
+                    $msg = "❌ El {$voc['subject']} #{$acceptedTrip->id} fue asignado a otro {$voc['role']}.\n" .
+                        "Te avisaremos cuando llegue otra oportunidad.";
+                    \App\Jobs\SendWhatsAppMessage::dispatch($loserDriver->user->whatsapp_number, $msg);
                 }
             }
 

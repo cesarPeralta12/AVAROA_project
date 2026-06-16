@@ -132,7 +132,8 @@ class MetaWhatsAppService
                 'Authorization' => 'Bearer ' . $this->accessToken,
                 'Content-Type' => 'application/json',
             ])
-                ->timeout(30)
+                ->connectTimeout(5)
+                ->timeout(8)
                 ->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", $payload);
             $ms = round((hrtime(true) - $t0) / 1e6);
 
@@ -457,7 +458,7 @@ class MetaWhatsAppService
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->accessToken,
-            ])->get("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/message_templates");
+            ])->connectTimeout(5)->timeout(8)->get("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/message_templates");
 
             return $response->json()['data'] ?? [];
         } catch (\Exception $e) {
@@ -471,7 +472,7 @@ class MetaWhatsAppService
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->accessToken,
-            ])->get("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}");
+            ])->connectTimeout(5)->timeout(8)->get("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}");
 
             return $response->json();
         } catch (\Exception $e) {
@@ -488,7 +489,7 @@ class MetaWhatsAppService
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->accessToken,
                 'Content-Type' => 'application/json',
-            ])->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", [
+            ])->connectTimeout(3)->timeout(5)->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", [
                 'messaging_product' => 'whatsapp',
                 'status' => 'read',
                 'message_id' => $messageId

@@ -475,7 +475,9 @@ class DriverAssignmentService
 
     public function handleDriverAcceptance(Driver $driver, array $payload): array
     {
-        return DB::transaction(function () use ($driver, $payload) {
+        $notifyData = null;
+
+        $result = DB::transaction(function () use ($driver, $payload, &$notifyData) {
             $request = DriverRequest::where('driver_id', $driver->id)
                 ->where('status', 'pending')
                 ->latest()
@@ -576,7 +578,7 @@ class DriverAssignmentService
                 'accepted_at' => now()->toIso8601String(),
             ]));
 
-            $this->notifyCustomerDriverAssigned($trip, $driver, $vehicle);
+            $notifyData = ['trip' => $trip, 'driver' => $driver, 'vehicle' => $vehicle];
 
             $priceFormatted = $trip->price ? 'Bs ' . number_format($trip->price, 2, '.', '') : 'Bs 0';
             $vehicleDisplay = $this->formatVehicleForDisplay($vehicle);
@@ -623,6 +625,17 @@ class DriverAssignmentService
 
             return ['status' => 'success', 'message' => 'Delivery assigned'];
         });
+
+        // Notify customer AFTER transaction commits — never inside a DB lock
+        if ($result['status'] === 'success' && $notifyData) {
+            $this->notifyCustomerDriverAssigned(
+                $notifyData['trip'],
+                $notifyData['driver'],
+                $notifyData['vehicle']
+            );
+        }
+
+        return $result;
     }
 
     protected function handleDriverEnRoute(Driver $driver, array $payload): array

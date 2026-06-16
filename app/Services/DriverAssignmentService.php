@@ -879,7 +879,12 @@ class DriverAssignmentService
             $closingLine;
 
         if ($trip->customer && $trip->customer->whatsapp_number) {
-            SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
+            try {
+                $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+            } catch (\Exception $e) {
+                Log::warning('notifyCustomerDriverAssigned: direct notify failed, falling back to queue', ['error' => $e->getMessage()]);
+                SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
+            }
         }
     }
 
@@ -1024,7 +1029,12 @@ class DriverAssignmentService
         };
 
         if ($customerMessage && $trip->customer && $trip->customer->whatsapp_number) {
-            SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $customerMessage);
+            try {
+                $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $customerMessage);
+            } catch (\Exception $e) {
+                Log::warning('updateTripStatus: direct customer notify failed, falling back to queue', ['error' => $e->getMessage()]);
+                SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $customerMessage);
+            }
         }
 
         // CRITICAL FIX: Proper session state mapping including IN_PROGRESS
@@ -1071,6 +1081,11 @@ class DriverAssignmentService
             "📅 *Fecha:* {$completedAt}\n\n" .
             "Gracias por usar nuestro servicio! 🚚";
 
-        SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
+        try {
+            $this->metaWhatsApp->sendMessage($trip->customer->whatsapp_number, $message);
+        } catch (\Exception $e) {
+            Log::warning('sendFinalSummary: direct notify failed, falling back to queue', ['error' => $e->getMessage()]);
+            SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
+        }
     }
 }

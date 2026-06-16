@@ -395,17 +395,27 @@ class WhatsAppService
         // Map the selected service to the canonical DB category (Taxi/Delivery/Cargo)
         $dbServiceType = $this->mapServiceTypeForDatabase($selectedService);
 
-        $trip = Trip::create([
-            'customer_id' => $user->id,
-            'conversation_id' => $session->id,
-            'service_type' => $dbServiceType,
-            'vehicle_type' => $vehicleOption['backend_type'],
-            'status' => 'NEW',
-            'payment_method' => 'cash',
-            'num_passengers' => 1,
-            'trunk_required' => false,
-            'requires_pod' => $requiresPod,
-        ]);
+        try {
+            $trip = Trip::create([
+                'customer_id' => $user->id,
+                'conversation_id' => $session->id,
+                'service_type' => $dbServiceType,
+                'vehicle_type' => $vehicleOption['backend_type'],
+                'status' => 'pending',
+                'payment_method' => 'cash',
+                'requires_pod' => $requiresPod,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('WhatsAppService: Trip::create() failed in handleAskServiceType', [
+                'error' => $e->getMessage(),
+                'service_type' => $dbServiceType,
+                'vehicle_type' => $vehicleOption['backend_type'],
+                'requires_pod' => $requiresPod,
+                'user_id' => $user->id,
+            ]);
+            $this->sendToUser($user, "❌ Error interno al crear el servicio. Escribí *HOLA* para intentar de nuevo.", $session->id, null, $language);
+            return;
+        }
 
         $session->update([
             'trip_id' => $trip->id,

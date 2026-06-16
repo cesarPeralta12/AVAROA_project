@@ -374,8 +374,13 @@ class DeliveryController extends Controller
             } catch (\Exception $e) {
                 Log::error('updateStatus broadcast failed: ' . $e->getMessage());
             }
-            // WhatsApp queued job — insert after response
-            \App\Jobs\SendTripStatusNotification::dispatch($tripId, $driverId, $statusVal);
+            // WhatsApp directo post-response — sin cola para entrega inmediata al cliente
+            try {
+                $this->sendCustomerStatusNotification($trip->fresh()->load('customer'), $statusVal, \App\Models\Driver::with('user')->find($driverId));
+            } catch (\Exception $e) {
+                Log::warning('updateStatus: direct WhatsApp failed, falling back to queue', ['error' => $e->getMessage()]);
+                \App\Jobs\SendTripStatusNotification::dispatch($tripId, $driverId, $statusVal);
+            }
         });
 
         return response()->json(['success' => true]);

@@ -180,7 +180,7 @@ class TripFlowService
         // Try Google Maps API first if key exists
         if ($apiKey) {
             try {
-                $res = Http::get('https://maps.googleapis.com/maps/api/distancematrix/json', [
+                $res = Http::timeout(8)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
                     'origins' => $originCoords,
                     'destinations' => $destCoords,
                     'key' => $apiKey,

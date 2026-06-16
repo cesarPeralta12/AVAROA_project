@@ -707,6 +707,7 @@ class DeliveryController extends Controller
         $previousStatus   = $trip->status;
         $finalWalletBalance = 0;
 
+        DB::statement('SET innodb_lock_wait_timeout = 5');
         DB::beginTransaction();
 
         try {

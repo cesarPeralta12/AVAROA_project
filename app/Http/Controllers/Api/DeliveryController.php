@@ -357,17 +357,16 @@ class DeliveryController extends Controller
 
         $trip->update($updateData);
 
-        $statusVal    = $request->status;
-        $reasonVal    = $request->reason;
-        $prevSnap     = $previousStatus;
-        $tripSnapshot = $trip->fresh()->load('customer');
+        $statusVal  = $request->status;
+        $reasonVal  = $request->reason;
+        $prevSnap   = $previousStatus;
+        $tripId     = $trip->id;
+        $driverId   = $driver->id;
 
-        // WhatsApp notification → queued job (non-blocking, can take 10-30 s)
-        \App\Jobs\SendTripStatusNotification::dispatch($trip->id, $driver->id, $statusVal);
-
-        // Reverb broadcasts are local and fast (< 50 ms) → keep in terminating
-        app()->terminating(function () use ($tripSnapshot, $statusVal, $reasonVal, $prevSnap) {
+        // Everything after the DB update runs post-response — zero blocking
+        app()->terminating(function () use ($trip, $statusVal, $reasonVal, $prevSnap, $tripId, $driverId) {
             try {
+                $tripSnapshot = $trip->fresh()->load('customer');
                 if ($statusVal === 'cancelled') {
                     broadcast(new TripCancelled($tripSnapshot, 'driver', $reasonVal));
                 }
@@ -375,12 +374,11 @@ class DeliveryController extends Controller
             } catch (\Exception $e) {
                 Log::error('updateStatus broadcast failed: ' . $e->getMessage());
             }
+            // WhatsApp queued job — insert after response
+            \App\Jobs\SendTripStatusNotification::dispatch($tripId, $driverId, $statusVal);
         });
 
-        return response()->json([
-            'success' => true,
-            'trip'    => $tripSnapshot,
-        ]);
+        return response()->json(['success' => true]);
     }
 
     /**
@@ -770,37 +768,38 @@ class DeliveryController extends Controller
             ], 500);
         }
 
-        $completedTrip = $trip->fresh();
+        $tripId    = $trip->id;
+        $driverId  = $driver->id;
+        $isActive  = Auth::user()->is_active;
 
-        // Dispatch WhatsApp notification to queue (non-blocking)
-        \App\Jobs\SendTripCompletionNotifications::dispatch($trip->id, $driver->id);
-
-        // Fast broadcasts via Reverb — keep in terminating (local, < 50 ms)
-        app()->terminating(function () use ($completedTrip, $previousStatus, $commissionAmount, $finalWalletBalance, $driver) {
+        // Everything after DB commit runs post-response — zero blocking
+        app()->terminating(function () use ($trip, $previousStatus, $commissionAmount,
+            $finalWalletBalance, $driverId, $tripId) {
             try {
+                // Reload only for broadcast (needs up-to-date status)
+                $completedTrip = $trip->fresh();
                 broadcast(new TripStatusChanged($completedTrip, $previousStatus, [
-                    'completed'          => true,
+                    'completed'           => true,
                     'commission_deducted' => $commissionAmount,
-                    'wallet_balance'     => $finalWalletBalance,
+                    'wallet_balance'      => $finalWalletBalance,
                 ]));
-                broadcast(new TripCompleted($completedTrip, $driver->id));
+                broadcast(new TripCompleted($completedTrip, $driverId));
             } catch (\Exception $e) {
                 Log::error('completeSimple broadcast failed: ' . $e->getMessage());
             }
+            // WhatsApp queued job — insert into jobs table after response
+            \App\Jobs\SendTripCompletionNotifications::dispatch($tripId, $driverId);
         });
 
         $response = [
-            'success'            => true,
-            'message'            => 'Trip completed successfully',
-            'trip'               => $completedTrip,
+            'success'             => true,
+            'message'             => 'Trip completed successfully',
             'commission_deducted' => $commissionAmount,
-            'wallet_balance'     => $finalWalletBalance,
-            'driver_blocked'     => $finalWalletBalance <= 0,
+            'wallet_balance'      => $finalWalletBalance,
+            'driver_blocked'      => $finalWalletBalance <= 0,
         ];
 
-        // If the account was disabled while the driver was finishing this trip,
-        // include the flag so the app kicks them out immediately after completion.
-        if (!Auth::user()->is_active) {
+        if (!$isActive) {
             $response['account_disabled'] = true;
             $response['account_disabled_message'] = 'Tu cuenta ha sido deshabilitada. Contacta con soporte.';
         }

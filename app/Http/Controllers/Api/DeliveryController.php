@@ -777,7 +777,6 @@ class DeliveryController extends Controller
         app()->terminating(function () use ($trip, $previousStatus, $commissionAmount,
             $finalWalletBalance, $driverId, $tripId) {
             try {
-                // Reload only for broadcast (needs up-to-date status)
                 $completedTrip = $trip->fresh();
                 broadcast(new TripStatusChanged($completedTrip, $previousStatus, [
                     'completed'           => true,
@@ -788,8 +787,35 @@ class DeliveryController extends Controller
             } catch (\Exception $e) {
                 Log::error('completeSimple broadcast failed: ' . $e->getMessage());
             }
-            // WhatsApp queued job — insert into jobs table after response
-            \App\Jobs\SendTripCompletionNotifications::dispatch($tripId, $driverId);
+
+            // WhatsApp directo post-response (sin cola) para entrega inmediata.
+            // La cola introduciría un retraso de varios segundos si hay otros
+            // mensajes pendientes esperando workers.
+            try {
+                $tripData   = $trip->fresh(['customer']);
+                $driver     = \App\Models\Driver::with('user')->find($driverId);
+                $phone      = $tripData->customer?->whatsapp_number ?? null;
+
+                if ($phone && $driver) {
+                    $voc        = $tripData->messageVocabulary();
+                    $driverName = $driver->user->name ?? $voc['role_cap'];
+                    $dateTime   = now()->format('d/m/Y H:i');
+                    $isPassenger = $tripData->isPassengerService();
+
+                    $message = "✅ *{$voc['completed_title']}*\n\n" .
+                        "Pedido: #{$tripData->id}\n" .
+                        (!$isPassenger ? "Fecha y hora: {$dateTime}\n" : "") .
+                        "👤 *{$voc['role_cap']}:* {$driverName}\n\n" .
+                        $voc['completed_thanks'];
+
+                    app(MetaWhatsAppService::class)->sendMessage($phone, $message);
+                    Log::info('completeSimple: WhatsApp enviado directamente', ['trip_id' => $tripId]);
+                }
+            } catch (\Exception $e) {
+                Log::error('completeSimple: WhatsApp directo falló, re-intentando via cola', ['error' => $e->getMessage()]);
+                // Fallback: intentar via cola si el envío directo falla
+                \App\Jobs\SendTripCompletionNotifications::dispatch($tripId, $driverId);
+            }
         });
 
         $response = [

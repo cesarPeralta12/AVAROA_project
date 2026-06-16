@@ -50,7 +50,8 @@ class MetaWhatsAppService
                 'Authorization' => 'Bearer ' . $this->accessToken,
                 'Content-Type' => 'application/json',
             ])
-                ->timeout(30)
+                ->connectTimeout(5)
+                ->timeout(12)
                 ->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", $payload);
 
             if ($response->successful()) {
@@ -72,6 +73,13 @@ class MetaWhatsAppService
                 'status' => $response->status()
             ]);
             return false;
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Re-lanzar errores de red/timeout para que los jobs puedan reintentarse.
+            Log::warning('WhatsApp connection timeout, will retry if in queue', [
+                'phone' => $phoneNumber,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Message send exception', [
                 'error' => $e->getMessage(),

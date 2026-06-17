@@ -302,7 +302,14 @@ class DeliveryController extends Controller
             return response()->json(['error' => 'Driver profile not found'], 404);
         }
 
-        $trip = Trip::where('driver_id', $driver->id)->findOrFail($tripId);
+        $trip = Trip::where('driver_id', $driver->id)->find($tripId);
+
+        if (!$trip) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este viaje ya no está disponible. Es posible que haya sido cancelado.',
+            ], 404);
+        }
 
         $previousStatus = $trip->status;
 

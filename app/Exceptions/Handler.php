@@ -7,6 +7,7 @@ use Throwable;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class Handler extends ExceptionHandler
 {
@@ -86,6 +87,14 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+        // API requests get clean JSON for ModelNotFoundException instead of raw PHP exception
+        if ($exception instanceof ModelNotFoundException && $request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El recurso solicitado no existe o ya no está disponible.',
+            ], 404);
+        }
+
         // Check if the exception is an HttpException
         if ($exception instanceof HttpException) {
             $statusCode = $exception->getStatusCode();

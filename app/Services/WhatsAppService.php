@@ -572,12 +572,12 @@ class WhatsAppService
 
     protected function isSameLocation(Trip $trip, array $locationData): bool
     {
-        if ($trip->origin_lat !== null && $trip->origin_lng !== null) {
+        if (!empty($trip->origin_lat) && !empty($trip->origin_lng)) {
             $distance = $this->calculateDistanceBetweenPoints(
-                $trip->origin_lat,
-                $trip->origin_lng,
-                $locationData['latitude'],
-                $locationData['longitude']
+                (float) $trip->origin_lat,
+                (float) $trip->origin_lng,
+                (float) $locationData['latitude'],
+                (float) $locationData['longitude']
             );
             if ($distance < 0.1) {
                 return true;
@@ -602,6 +602,30 @@ class WhatsAppService
             $errorMsg = "❌ Error del sistema 😕\n\nEscribí *HOLA* para reiniciar";
             $this->sendToUser($user, $errorMsg, $session->id, null, $language);
             return;
+        }
+
+        // Safety net: catch same-location cases that slipped past handleAskDestination
+        if (!empty($trip->origin_lat) && !empty($trip->origin_lng) &&
+            !empty($trip->destination_lat) && !empty($trip->destination_lng)) {
+            $safetyDist = $this->calculateDistanceBetweenPoints(
+                (float) $trip->origin_lat, (float) $trip->origin_lng,
+                (float) $trip->destination_lat, (float) $trip->destination_lng
+            );
+            if ($safetyDist < 0.1) {
+                $trip->update([
+                    'status'          => 'pickup_set',
+                    'destination_lat' => null,
+                    'destination_lng' => null,
+                    'destination_url' => null,
+                ]);
+                $session->update(['state' => 'ASK_DESTINATION']);
+                $this->sendToUser(
+                    $user,
+                    "❌ El destino es igual a la recogida 😅\n\nMandame una ubicación *diferente* para el destino",
+                    $session->id, $trip->id, $language
+                );
+                return;
+            }
         }
 
         $calculatingMsg = "⏳ Calculando... un segundito";

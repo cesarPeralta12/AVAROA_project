@@ -87,6 +87,19 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+        // CSRF token mismatch (session expired while idle / page left open AFK).
+        // Send the user back to the right login screen with a clear message
+        // instead of Laravel's raw "419 | PAGE EXPIRED" page.
+        if ($exception instanceof \Illuminate\Session\TokenMismatchException) {
+            $message = 'Tu sesión expiró. Por favor, inicia sesión nuevamente.';
+
+            if ($request->is('admin/*')) {
+                return redirect('admin/login')->with('fail', $message);
+            }
+
+            return redirect('/')->with('fail', $message);
+        }
+
         // API requests get clean JSON for ModelNotFoundException instead of raw PHP exception
         if ($exception instanceof ModelNotFoundException && $request->expectsJson()) {
             return response()->json([

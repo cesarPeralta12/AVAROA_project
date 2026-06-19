@@ -768,7 +768,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['check.session', 'AdminIsLog
 // Public routes (accessible without authentication)
 Route::get('/admin/login', [Admin::class, 'admin'])->name('admin')->middleware('AdminAlreadyLoggedIn');
 Route::get('/', [Admin::class, 'admin'])->name('admin')->middleware('AdminAlreadyLoggedIn');
-Route::post('/admin/log', [Admin::class, 'login'])->name('login');
+Route::post('/admin/log', [Admin::class, 'login'])->name('admin.login.post');
 Route::get('/admin/log', fn() => redirect('/admin/login'));
 Route::get('/admin/forget_password', [Admin::class, 'forget_password'])->name('forget_password');
 Route::post('/admin/unlocked', [Admin::class, 'unlocked'])->name('unlocked');

@@ -17,7 +17,7 @@ class NewsController extends Controller
     public function index()
     {
         if (!Session::has('LoggedIn')) {
-            return redirect()->route('login')->with('error', 'Por favor, inicie sesión primero.');
+            return redirect('admin/login')->with('fail', 'Tu sesión expiró. Por favor, inicia sesión nuevamente.');
         }
 
         $user_session = User::find(Session::get('LoggedIn'));
@@ -31,7 +31,7 @@ class NewsController extends Controller
     public function create()
     {
         if (!Session::has('LoggedIn')) {
-            return redirect()->route('login')->with('error', 'Por favor, inicie sesión primero.');
+            return redirect('admin/login')->with('fail', 'Tu sesión expiró. Por favor, inicia sesión nuevamente.');
         }
 
         $user_session = User::find(Session::get('LoggedIn'));
@@ -102,7 +102,7 @@ class NewsController extends Controller
     public function edit($id)
     {
         if (!Session::has('LoggedIn')) {
-            return redirect()->route('login')->with('error', 'Por favor, inicie sesión primero.');
+            return redirect('admin/login')->with('fail', 'Tu sesión expiró. Por favor, inicia sesión nuevamente.');
         }
 
         $user_session = User::find(Session::get('LoggedIn'));

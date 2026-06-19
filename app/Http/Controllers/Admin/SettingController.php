@@ -54,7 +54,7 @@ class SettingController extends Controller
 
             return view('admin.application_settings.general.general-settings', $data);
         } else {
-            return redirect()->route('login');
+            return redirect('admin/login')->with('fail', 'Tu sesión expiró. Por favor, inicia sesión nuevamente.');
         }
     }
 

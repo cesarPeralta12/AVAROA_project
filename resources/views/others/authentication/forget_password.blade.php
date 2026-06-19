@@ -61,7 +61,7 @@
                     </div>
                     <button class="btn btn-primary btn-block w-100 mt-3" type="submit">Done                          </button>
                   </div>
-                  <p class="mt-4 mb-0 text-center">Already have an password?<a class="ms-2" href="{{ route('login') }}">Sign in</a></p>
+                  <p class="mt-4 mb-0 text-center">Already have an password?<a class="ms-2" href="{{ route('admin') }}">Sign in</a></p>
                 </form>
               </div>
             </div>

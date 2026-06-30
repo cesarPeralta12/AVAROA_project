@@ -14,7 +14,7 @@ class GeocodingService
      */
     public function reverseGeocode(float $lat, float $lng): ?string
     {
-        $key = config('services.maps_key');
+        $key = config('services.google.maps_key');
         if (empty($key)) {
             return null;
         }

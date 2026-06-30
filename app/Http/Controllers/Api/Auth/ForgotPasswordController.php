@@ -3,34 +3,30 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordChangedMail;
+use App\Mail\SendOtpMail;
 use App\Models\PasswordResetOtp;
 use App\Models\User;
-use App\Services\MetaWhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class ForgotPasswordController extends Controller
 {
-    protected MetaWhatsAppService $metaWhatsApp;
-
-    public function __construct(MetaWhatsAppService $metaWhatsApp)
-    {
-        $this->metaWhatsApp = $metaWhatsApp;
-    }
-
     /**
-     * Step 1: Send OTP via WhatsApp to the given phone number
+     * Step 1: Send OTP via email to the given address
      */
     public function sendOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|exists:users,whatsapp_number',
+            'email' => 'required|email|exists:users,email',
         ], [
-            'phone.required' => 'El número de teléfono es obligatorio.',
-            'phone.exists'   => 'Este número no está registrado.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email'    => 'Ingresa un correo electrónico válido.',
+            'email.exists'   => 'Este correo no está registrado.',
         ]);
 
         if ($validator->fails()) {
@@ -45,40 +41,40 @@ class ForgotPasswordController extends Controller
             $otp   = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $token = Str::random(64);
 
-            // Invalidate previous OTPs for this phone
-            PasswordResetOtp::where('email', $request->phone)
+            // Invalidate previous OTPs for this email
+            PasswordResetOtp::where('email', $request->email)
                 ->where('is_used', false)
                 ->update(['is_used' => true]);
 
             PasswordResetOtp::create([
-                'email'      => $request->phone, // reusing email column as identifier
+                'email'      => $request->email,
                 'otp'        => $otp,
                 'token'      => $token,
                 'expires_at' => now()->addMinutes(10),
             ]);
 
-            $user = User::where('whatsapp_number', $request->phone)->first();
+            $user = User::where('email', $request->email)->first();
 
-            $sent = $this->sendOtpViaWhatsApp($user, $otp);
+            $sent = $this->sendOtpViaEmail($user, $otp);
 
             if (!$sent) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo enviar el código por WhatsApp. Intente nuevamente.',
+                    'message' => 'No se pudo enviar el código por correo. Intente nuevamente.',
                 ], 500);
             }
 
-            Log::info('OTP sent via WhatsApp', ['user_id' => $user->id, 'phone' => $request->phone]);
+            Log::info('OTP sent via email', ['user_id' => $user->id, 'email' => $request->email]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Código enviado por WhatsApp',
+                'message' => 'Código enviado por correo electrónico',
                 'data'    => [
-                    'phone'      => $request->phone,
-                    'masked'     => $this->maskPhone($request->phone),
+                    'email'      => $request->email,
+                    'masked'     => $this->maskEmail($request->email),
                     'expires_in' => 600,
                     'countdown'  => 60,
-                    'channels'   => ['whatsapp'],
+                    'channels'   => ['email'],
                 ],
             ]);
 
@@ -92,35 +88,18 @@ class ForgotPasswordController extends Controller
     }
 
     /**
-     * Send OTP via WhatsApp — template first, free-form as fallback
+     * Send the OTP email
      */
-    protected function sendOtpViaWhatsApp(User $user, string $otp): bool
+    protected function sendOtpViaEmail(User $user, string $otp): bool
     {
-        $phone = $user->whatsapp_number;
-
         try {
-            $sent = $this->metaWhatsApp->sendTemplateMessage(
-                $phone,
-                'otp_verification_sp',
-                [$user->name ?? 'Usuario', $otp, '10 minutos']
-            );
-
-            if ($sent) return true;
+            Mail::to($user->email)->send(new SendOtpMail($otp, $user->name));
+            return true;
         } catch (\Exception $e) {
-            Log::error('WhatsApp template failed', ['error' => $e->getMessage()]);
-        }
-
-        // Free-form fallback (works inside 24h window)
-        try {
-            $message = "🔐 *Recuperación de Contraseña*\n\n"
-                     . "Hola {$user->name},\n\n"
-                     . "Tu código es: *{$otp}*\n"
-                     . "⏱️ Válido por 10 minutos.\n\n"
-                     . "Si no solicitaste esto, ignora este mensaje.";
-
-            return $this->metaWhatsApp->sendMessage($phone, $message);
-        } catch (\Exception $e) {
-            Log::error('WhatsApp free-form failed', ['error' => $e->getMessage()]);
+            Log::error('OTP email send failed', [
+                'error' => $e->getMessage(),
+                'email' => $user->email,
+            ]);
             return false;
         }
     }
@@ -131,11 +110,11 @@ class ForgotPasswordController extends Controller
     public function verifyOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|exists:users,whatsapp_number',
+            'email' => 'required|email|exists:users,email',
             'otp'   => 'required|string|size:6',
         ], [
-            'phone.required' => 'El número de teléfono es obligatorio.',
-            'phone.exists'   => 'Este número no está registrado.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.exists'   => 'Este correo no está registrado.',
             'otp.required'   => 'El código de verificación es obligatorio.',
             'otp.size'       => 'El código de verificación debe tener 6 dígitos.',
             'otp.digits'     => 'El código de verificación es incorrecto.',
@@ -149,7 +128,7 @@ class ForgotPasswordController extends Controller
             ], 422);
         }
 
-        $resetOtp = PasswordResetOtp::where('email', $request->phone)
+        $resetOtp = PasswordResetOtp::where('email', $request->email)
             ->where('otp', $request->otp)
             ->where('is_used', false)
             ->where('expires_at', '>', now())
@@ -170,7 +149,7 @@ class ForgotPasswordController extends Controller
             'message' => 'Código verificado correctamente',
             'data'    => [
                 'reset_token' => $resetOtp->token,
-                'phone'       => $request->phone,
+                'email'       => $request->email,
                 'next_step'   => 'new_password',
             ],
         ]);
@@ -182,13 +161,13 @@ class ForgotPasswordController extends Controller
     public function resetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone'                 => 'required|string|exists:users,whatsapp_number',
+            'email'                 => 'required|email|exists:users,email',
             'reset_token'           => 'required|string',
             'password'              => 'required|string|min:6',
             'password_confirmation' => 'required|string|same:password',
         ], [
-            'phone.required'                 => 'El número de teléfono es requerido',
-            'phone.exists'                   => 'Este número no está registrado',
+            'email.required'                 => 'El correo electrónico es requerido',
+            'email.exists'                   => 'Este correo no está registrado',
             'reset_token.required'           => 'El token de recuperación es obligatorio.',
             'password.required'              => 'La contraseña es obligatoria.',
             'password.min'                   => 'La contraseña debe tener al menos 6 caracteres.',
@@ -203,7 +182,7 @@ class ForgotPasswordController extends Controller
             ], 422);
         }
 
-        $resetOtp = PasswordResetOtp::where('email', $request->phone)
+        $resetOtp = PasswordResetOtp::where('email', $request->email)
             ->where('token', $request->reset_token)
             ->where('is_used', false)
             ->where('expires_at', '>', now())
@@ -218,7 +197,7 @@ class ForgotPasswordController extends Controller
         }
 
         try {
-            $user = User::where('whatsapp_number', $request->phone)->first();
+            $user = User::where('email', $request->email)->first();
 
             $user->update(['password' => Hash::make($request->password)]);
             $resetOtp->markAsUsed();
@@ -236,7 +215,7 @@ class ForgotPasswordController extends Controller
                     'user'       => [
                         'id'    => $user->id,
                         'name'  => $user->name,
-                        'phone' => $user->whatsapp_number,
+                        'email' => $user->email,
                     ],
                 ],
             ]);
@@ -256,10 +235,10 @@ class ForgotPasswordController extends Controller
     public function resendOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|exists:users,whatsapp_number',
+            'email' => 'required|email|exists:users,email',
         ], [
-            'phone.required' => 'El número de teléfono es obligatorio.',
-            'phone.exists'   => 'Este número no está registrado.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.exists'   => 'Este correo no está registrado.',
         ]);
 
         if ($validator->fails()) {
@@ -270,7 +249,7 @@ class ForgotPasswordController extends Controller
             ], 422);
         }
 
-        $recentOtp = PasswordResetOtp::where('email', $request->phone)
+        $recentOtp = PasswordResetOtp::where('email', $request->email)
             ->where('is_used', false)
             ->where('created_at', '>', now()->subSeconds(60))
             ->first();
@@ -290,17 +269,17 @@ class ForgotPasswordController extends Controller
     protected function notifyPasswordChanged(User $user): void
     {
         try {
-            $message = "✅ *Contraseña Actualizada*\n\nHola {$user->name},\nTu contraseña fue cambiada exitosamente.\n\nSi no fuiste tú, contacta soporte inmediatamente.";
-            $this->metaWhatsApp->sendMessage($user->whatsapp_number, $message);
+            Mail::to($user->email)->send(new PasswordChangedMail($user->name));
         } catch (\Exception $e) {
-            Log::error('Password change WhatsApp notify failed', ['error' => $e->getMessage()]);
+            Log::error('Password change email notify failed', ['error' => $e->getMessage()]);
         }
     }
 
-    protected function maskPhone(string $phone): string
+    protected function maskEmail(string $email): string
     {
-        $len = strlen($phone);
-        if ($len <= 4) return $phone;
-        return str_repeat('*', $len - 4) . substr($phone, -4);
+        [$local, $domain] = explode('@', $email) + [1 => ''];
+        $visible = min(2, strlen($local));
+        $masked = substr($local, 0, $visible) . str_repeat('*', max(strlen($local) - $visible, 3));
+        return $masked . '@' . $domain;
     }
 }

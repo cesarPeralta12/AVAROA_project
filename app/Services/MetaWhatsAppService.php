@@ -168,6 +168,87 @@ class MetaWhatsAppService
         }
     }
 
+    /**
+     * Send an Authentication-category template (OTP). Meta requires this category
+     * for OTP content; unlike Utility templates, the body takes only the code and
+     * the same code must be repeated in the "Copy code" button component.
+     */
+    public function sendAuthTemplate(string $phoneNumber, string $templateName, string $otp, string $languageCode = 'es_MX'): bool
+    {
+        if (!$this->configured) {
+            Log::error('Meta WhatsApp not configured');
+            return false;
+        }
+
+        try {
+            $phoneNumber = $this->formatPhoneNumber($phoneNumber);
+
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => $phoneNumber,
+                'type' => 'template',
+                'template' => [
+                    'name' => $templateName,
+                    'language' => ['code' => $languageCode],
+                    'components' => [
+                        [
+                            'type' => 'body',
+                            'parameters' => [
+                                ['type' => 'text', 'text' => $otp],
+                            ],
+                        ],
+                        [
+                            'type' => 'button',
+                            'sub_type' => 'url',
+                            'index' => '0',
+                            'parameters' => [
+                                ['type' => 'text', 'text' => $otp],
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+
+            $t0 = hrtime(true);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->accessToken,
+                'Content-Type' => 'application/json',
+            ])
+                ->connectTimeout(3)
+                ->timeout(6)
+                ->post("https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}/messages", $payload);
+            $ms = round((hrtime(true) - $t0) / 1e6);
+
+            $responseData = $response->json();
+
+            if ($response->successful() && isset($responseData['messages'][0]['id'])) {
+                Log::info('WhatsApp API sendAuthTemplate', [
+                    'phone' => $phoneNumber,
+                    'template' => $templateName,
+                    'wamid' => $responseData['messages'][0]['id'],
+                    'ms' => $ms,
+                ]);
+                return true;
+            }
+
+            Log::error('Auth template message failed', [
+                'phone' => $phoneNumber,
+                'template' => $templateName,
+                'response' => $response->body(),
+                'status' => $response->status(),
+                'ms' => $ms,
+            ]);
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Auth template send exception', [
+                'error' => $e->getMessage(),
+                'template' => $templateName,
+                'phone' => $phoneNumber,
+            ]);
+            return false;
+        }
+    }
+
     public function sendAssignedNotification(string $phoneNumber, string $serviceType, array $tripDetails, string $language = 'es'): bool
     {
         Log::info('Sending courier assigned notification', [

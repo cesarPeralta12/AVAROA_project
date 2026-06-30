@@ -249,4 +249,42 @@ class Trip extends Model
     {
         return $this->hasMany(AuditLog::class);
     }
+
+    /**
+     * Human-readable pickup address. Falls back to reverse-geocoding the
+     * coordinates (and persisting the result) when the customer only shared
+     * a map pin via WhatsApp, so the app never has to show a raw maps URL.
+     */
+    public function resolveOriginAddress(): string
+    {
+        return $this->resolveAddress('origin_address', 'origin_lat', 'origin_lng');
+    }
+
+    public function resolveDestinationAddress(): string
+    {
+        return $this->resolveAddress('destination_address', 'destination_lat', 'destination_lng');
+    }
+
+    protected function resolveAddress(string $addressColumn, string $latColumn, string $lngColumn): string
+    {
+        if (!empty($this->{$addressColumn})) {
+            return $this->{$addressColumn};
+        }
+
+        $lat = $this->{$latColumn};
+        $lng = $this->{$lngColumn};
+
+        if ($lat && $lng) {
+            $address = app(\App\Services\GeocodingService::class)->reverseGeocode((float) $lat, (float) $lng);
+            if ($address) {
+                $this->{$addressColumn} = $address;
+                $this->saveQuietly();
+                return $address;
+            }
+
+            return 'Lat ' . round((float) $lat, 5) . ', Lng ' . round((float) $lng, 5);
+        }
+
+        return 'Dirección no disponible';
+    }
 }

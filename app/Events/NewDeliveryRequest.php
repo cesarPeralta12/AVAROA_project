@@ -30,13 +30,13 @@ class NewDeliveryRequest implements ShouldBroadcast
         'service_type' => $trip->service_type,
         'customer_note' => $trip->notes ?? null, // ← ADDED for Flutter easy access
         'pickup' => [
-            'address' => $trip->origin_address ?? $trip->origin_url,
+            'address' => $trip->resolveOriginAddress(),
             'lat' => (float) $trip->origin_lat,
             'lng' => (float) $trip->origin_lng,
             'url' => $trip->origin_url,
         ],
         'delivery' => [
-            'address' => $trip->destination_address ?? $trip->destination_url,
+            'address' => $trip->resolveDestinationAddress(),
             'lat' => (float) $trip->destination_lat,
             'lng' => (float) $trip->destination_lng,
             'url' => $trip->destination_url,

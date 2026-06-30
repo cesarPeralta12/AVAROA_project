@@ -37,6 +37,17 @@ class ForgotPasswordController extends Controller
             ], 422);
         }
 
+        $user = User::where('email', $request->email)->first();
+
+        $blocked = $this->accountBlockedReason($user);
+        if ($blocked) {
+            return response()->json([
+                'success' => false,
+                'code'    => $blocked['code'],
+                'message' => $blocked['message'],
+            ], 403);
+        }
+
         try {
             $otp   = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $token = Str::random(64);
@@ -52,8 +63,6 @@ class ForgotPasswordController extends Controller
                 'token'      => $token,
                 'expires_at' => now()->addMinutes(10),
             ]);
-
-            $user = User::where('email', $request->email)->first();
 
             $sent = $this->sendOtpViaEmail($user, $otp);
 
@@ -273,6 +282,35 @@ class ForgotPasswordController extends Controller
         } catch (\Exception $e) {
             Log::error('Password change email notify failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Same disabled/suspended checks used by LoginController, applied before
+     * issuing a reset code so a deactivated or suspended account can't be used
+     * to regain access via password reset.
+     */
+    protected function accountBlockedReason(?User $user): ?array
+    {
+        if (!$user) {
+            return null;
+        }
+
+        if (!$user->is_active) {
+            return [
+                'code'    => 'account_disabled',
+                'message' => 'Tu cuenta ha sido deshabilitada. Contacta con soporte para más información.',
+            ];
+        }
+
+        $driver = $user->driver;
+        if ($driver && ($driver->approval_status === 'suspended' || $driver->status === 'suspended')) {
+            return [
+                'code'    => 'account_suspended',
+                'message' => 'Tu cuenta ha sido suspendida. Por favor, contacta a soporte para más información.',
+            ];
+        }
+
+        return null;
     }
 
     protected function maskEmail(string $email): string

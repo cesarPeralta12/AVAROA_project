@@ -71,6 +71,7 @@ Route::middleware(['auth:sanctum', 'driver.active'])->group(function () {
     Route::post('/driver/offline', [DriverController::class, 'goOffline']);
     Route::get('/driver/status', [DriverController::class, 'status']);
 
+    Route::put('/driver/fcm-token', [DriverController::class, 'updateFcmToken']);
     Route::post('/driver/location', [DriverController::class, 'updateLocation']);
     Route::get('/driver/location', [DriverController::class, 'getLocation']);
     Route::get('/driver/stats', [DriverController::class, 'stats']);

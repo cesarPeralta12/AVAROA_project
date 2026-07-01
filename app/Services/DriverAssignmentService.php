@@ -12,6 +12,7 @@ use App\Models\DriverRequest;
 use App\Models\ConversationSession;
 use App\Models\Vehicle;
 use App\Jobs\SendWhatsAppMessage;
+use App\Services\FcmService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -310,6 +311,8 @@ class DriverAssignmentService
         }
 
         broadcast(new NewDeliveryRequest($trip, $driverIds, 300));
+
+        $this->sendFcmToDrivers($drivers->pluck('fcm_token')->filter()->values()->all(), $trip);
 
         dispatch(function () use ($trip, $driverIds) {
             $this->checkExpiration($trip->id, $driverIds);
@@ -1102,6 +1105,28 @@ class DriverAssignmentService
         } catch (\Exception $e) {
             Log::warning('sendFinalSummary: direct notify failed, falling back to queue', ['error' => $e->getMessage()]);
             SendWhatsAppMessage::dispatch($trip->customer->whatsapp_number, $message);
+        }
+    }
+
+    private function sendFcmToDrivers(array $fcmTokens, Trip $trip): void
+    {
+        if (empty($fcmTokens)) return;
+
+        try {
+            $fcm = app(FcmService::class);
+            $fare = number_format((float) ($trip->estimated_fare ?? $trip->price ?? 0), 2);
+            $origin = $trip->resolveOriginAddress();
+
+            $sent = $fcm->sendToMany(
+                $fcmTokens,
+                '¡Nueva solicitud disponible!',
+                "Recojo: {$origin} — {$fare} Bs",
+                ['trip_id' => (string) $trip->id, 'type' => 'new_job'],
+            );
+
+            Log::info('FCM pushes sent', ['trip_id' => $trip->id, 'sent' => $sent, 'total' => count($fcmTokens)]);
+        } catch (\Exception $e) {
+            Log::warning('FCM push skipped', ['error' => $e->getMessage()]);
         }
     }
 }

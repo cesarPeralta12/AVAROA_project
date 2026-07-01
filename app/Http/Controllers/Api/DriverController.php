@@ -135,6 +135,20 @@ class DriverController extends Controller
     }
 
     /**
+     * Store or refresh the driver's FCM push token
+     */
+    public function updateFcmToken(Request $request)
+    {
+        $request->validate(['fcm_token' => 'required|string|max:500']);
+
+        $driver = Auth::user();
+        $driver->fcm_token = $request->fcm_token;
+        $driver->saveQuietly();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
      * Real-time location update
      */
     public function updateLocation(Request $request)

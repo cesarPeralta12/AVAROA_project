@@ -58,15 +58,25 @@ class GeocodingService
     {
         try {
             $response = Http::connectTimeout(5)
-                ->timeout(8)
-                ->withHeaders(['User-Agent' => 'AvaroaApp/1.0 (delivery; contact@avaroa.com)'])
+                ->timeout(10)
+                ->withHeaders([
+                    'User-Agent' => 'AvaroaDelivery/1.0 (https://deliveryavaroa.org; contact@deliveryavaroa.org)',
+                    'Referer'    => 'https://deliveryavaroa.org',
+                    'Accept'     => 'application/json',
+                ])
                 ->get('https://nominatim.openstreetmap.org/reverse', [
-                    'lat'            => $lat,
-                    'lon'            => $lng,
-                    'format'         => 'json',
+                    'lat'             => $lat,
+                    'lon'             => $lng,
+                    'format'          => 'json',
                     'accept-language' => 'es',
-                    'zoom'           => 16,
+                    'zoom'            => 16,
+                    'addressdetails'  => 1,
                 ]);
+
+            if ($response->status() === 429) {
+                Log::warning('Nominatim rate limited', ['lat' => $lat, 'lng' => $lng]);
+                return null;
+            }
 
             if (!$response->successful()) {
                 return null;

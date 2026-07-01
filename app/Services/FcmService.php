@@ -50,7 +50,7 @@ class FcmService
                         'android' => [
                             'priority' => 'high',
                             'notification' => [
-                                'channel_id'              => 'avaroa_jobs',
+                                'channel_id'              => 'avaroa_jobs_v2',
                                 'priority'                => 'max',
                                 'default_vibrate_timings' => true,
                                 'default_sound'           => true,

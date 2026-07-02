@@ -15,7 +15,8 @@ class GeocodingService
     public function reverseGeocode(float $lat, float $lng): ?string
     {
         return $this->geocodeWithGoogle($lat, $lng)
-            ?? $this->geocodeWithNominatim($lat, $lng);
+            ?? $this->geocodeWithNominatim($lat, $lng)
+            ?? $this->geocodeWithBigDataCloud($lat, $lng);
     }
 
     private function geocodeWithGoogle(float $lat, float $lng): ?string
@@ -100,6 +101,44 @@ class GeocodingService
             return $data['display_name'] ?? null;
         } catch (\Exception $e) {
             Log::warning('Nominatim reverse geocoding failed', [
+                'lat'   => $lat,
+                'lng'   => $lng,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    private function geocodeWithBigDataCloud(float $lat, float $lng): ?string
+    {
+        try {
+            $response = Http::connectTimeout(5)
+                ->timeout(8)
+                ->get('https://api.bigdatacloud.net/data/reverse-geocode-client', [
+                    'latitude'         => $lat,
+                    'longitude'        => $lng,
+                    'localityLanguage' => 'es',
+                ]);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $data = $response->json();
+
+            $parts = array_filter([
+                $data['locality'] ?? null,
+                $data['city']     ?? null,
+                $data['principalSubdivision'] ?? null,
+            ]);
+
+            if (!empty($parts)) {
+                return implode(', ', array_unique($parts));
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::warning('BigDataCloud geocoding failed', [
                 'lat'   => $lat,
                 'lng'   => $lng,
                 'error' => $e->getMessage(),

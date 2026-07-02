@@ -145,6 +145,8 @@ class DriverController extends Controller
         $driver->fcm_token = $request->fcm_token;
         $driver->saveQuietly();
 
+        \Log::info('FCM token registered', ['user_id' => $driver->id]);
+
         return response()->json(['success' => true]);
     }
 

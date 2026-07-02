@@ -382,6 +382,22 @@ private function normalizarTipoVehiculo(?string $tipoRaw): string
 
 
     /**
+     * Store or refresh the driver's FCM push token
+     */
+    public function updateFcmToken(Request $request)
+    {
+        $request->validate(['fcm_token' => 'required|string|max:500']);
+
+        $user = Auth::user();
+        $user->fcm_token = $request->fcm_token;
+        $user->saveQuietly();
+
+        \Log::info('FCM token registered', ['user_id' => $user->id]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
      * Update location
      */
     public function updateLocation(Request $request)

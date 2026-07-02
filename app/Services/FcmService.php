@@ -38,25 +38,22 @@ class FcmService
         try {
             $token = $this->getAccessToken();
 
+            // Data-only message: the app's background handler displays the
+            // notification itself with fullScreenIntent (big, over other apps).
+            // A 'notification' block here would make Android show a plain
+            // banner instead, so title/body travel inside 'data'.
             $response = Http::withToken($token)
                 ->timeout(10)
                 ->post("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send", [
                     'message' => [
                         'token' => $fcmToken,
-                        'notification' => [
-                            'title' => $title,
-                            'body'  => $body,
-                        ],
                         'android' => [
                             'priority' => 'high',
-                            'notification' => [
-                                'channel_id'              => 'avaroa_jobs_v2',
-                                'priority'                => 'max',
-                                'default_vibrate_timings' => true,
-                                'default_sound'           => true,
-                            ],
                         ],
-                        'data' => array_map('strval', $data),
+                        'data' => array_map('strval', array_merge($data, [
+                            'title' => $title,
+                            'body'  => $body,
+                        ])),
                     ],
                 ]);
 

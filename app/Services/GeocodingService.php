@@ -44,6 +44,33 @@ class GeocodingService
                 return null;
             }
 
+            // Build "Calle, Barrio X" from address components — the client
+            // specifically wants the barrio visible (Tarija).
+            $route = null;
+            $barrio = null;
+            foreach ($data['results'] as $result) {
+                foreach ($result['address_components'] ?? [] as $comp) {
+                    $types = $comp['types'] ?? [];
+                    if ($route === null && in_array('route', $types)) {
+                        $route = $comp['long_name'];
+                    }
+                    if ($barrio === null && (
+                        in_array('neighborhood', $types) ||
+                        in_array('sublocality_level_1', $types) ||
+                        in_array('sublocality', $types)
+                    )) {
+                        $barrio = $comp['long_name'];
+                    }
+                }
+                if ($route && $barrio) {
+                    break;
+                }
+            }
+
+            if ($route) {
+                return $barrio ? "{$route}, " . $this->labelBarrio($barrio) : $route;
+            }
+
             return $data['results'][0]['formatted_address'] ?? null;
         } catch (\Exception $e) {
             Log::warning('Google reverse geocoding failed', [
@@ -70,7 +97,7 @@ class GeocodingService
                     'lon'             => $lng,
                     'format'          => 'json',
                     'accept-language' => 'es',
-                    'zoom'            => 16,
+                    'zoom'            => 18,
                     'addressdetails'  => 1,
                 ]);
 
@@ -86,11 +113,15 @@ class GeocodingService
             $data = $response->json();
             $addr = $data['address'] ?? [];
 
-            // Build a readable label: road + neighbourhood/suburb or city
+            // Build a readable label: road + barrio (the client wants barrios)
+            $road = $addr['road'] ?? $addr['pedestrian'] ?? $addr['footway'] ?? null;
+            $barrio = $addr['neighbourhood'] ?? $addr['suburb'] ?? $addr['quarter']
+                ?? $addr['residential'] ?? $addr['city_district'] ?? null;
+
             $parts = array_filter([
-                $addr['road'] ?? $addr['pedestrian'] ?? $addr['footway'] ?? null,
+                $road,
                 $addr['house_number'] ?? null,
-                $addr['neighbourhood'] ?? $addr['suburb'] ?? $addr['quarter'] ?? null,
+                $barrio ? $this->labelBarrio($barrio) : null,
             ]);
 
             if (!empty($parts)) {
@@ -107,6 +138,21 @@ class GeocodingService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Prefixes "Barrio" unless the name already carries a qualifier
+     * (Barrio, Zona, Villa, Urbanización...).
+     */
+    private function labelBarrio(string $name): string
+    {
+        $lower = mb_strtolower($name);
+        foreach (['barrio', 'zona', 'villa', 'urbanizac', 'ciudadela', 'distrito'] as $prefix) {
+            if (str_starts_with($lower, $prefix)) {
+                return $name;
+            }
+        }
+        return "Barrio {$name}";
     }
 
     private function geocodeWithBigDataCloud(float $lat, float $lng): ?string

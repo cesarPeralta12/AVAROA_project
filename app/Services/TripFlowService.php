@@ -172,7 +172,7 @@ class TripFlowService
 
     protected function calculateDistance(float $origLat, float $origLng, float $destLat, float $destLng): float
     {
-        $apiKey = config('services.google.maps_api_key');
+        $apiKey = config('services.google.maps_key');
 
         $originCoords = "{$origLat},{$origLng}";
         $destCoords = "{$destLat},{$destLng}";

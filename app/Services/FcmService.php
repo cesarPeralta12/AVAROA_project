@@ -49,10 +49,15 @@ class FcmService
                         'token' => $fcmToken,
                         'android' => [
                             'priority' => 'high',
+                            // Old queued pushes must not resurface days later.
+                            'ttl' => '120s',
                         ],
                         'data' => array_map('strval', array_merge($data, [
-                            'title' => $title,
-                            'body'  => $body,
+                            'title'   => $title,
+                            'body'    => $body,
+                            // Epoch seconds — the app ignores stale pushes so a
+                            // delayed/queued delivery never rings for an old job.
+                            'sent_at' => (string) time(),
                         ])),
                     ],
                 ]);

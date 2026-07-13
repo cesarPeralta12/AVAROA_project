@@ -145,6 +145,12 @@ public function profile(Request $request)
     return response()->json([
         'success' => true,
         'data' => [
+            // Real Driver model id — the app subscribes to the private channel
+            // `driver.{driver_id}` and filters `notified_driver_ids` with it.
+            // Without this the app fell back to the USER id, so it listened on
+            // the wrong channel (missed cancellations) and couldn't match the
+            // vehicle-type targeting (moto drivers saw auto jobs and vice versa).
+            'driver_id' => $driver->id,
             'profile' => [
                 'id' => $driver->user->id,
                 'fullName' => $driver->user->name,
